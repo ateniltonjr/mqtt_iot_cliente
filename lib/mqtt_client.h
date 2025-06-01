@@ -22,6 +22,14 @@
 #define MQTT_WILL_MSG "0"
 #define MQTT_WILL_QOS 1
 
+#ifndef TEMPERATURE_UNITS
+#define TEMPERATURE_UNITS 'C'
+#endif
+
+#ifndef MQTT_DEVICE_NAME
+#define MQTT_DEVICE_NAME "pico"
+#endif
+
 // Definir como 1 para adicionar o nome do cliente aos tópicos, para suportar vários dispositivos que utilizam o mesmo servidor
 #ifndef MQTT_UNIQUE_TOPIC
 #define MQTT_UNIQUE_TOPIC 0
@@ -123,7 +131,7 @@ void unsub_request_cb(void *arg, err_t err) {
 void sub_unsub_topics(MQTT_CLIENT_DATA_T* state, bool sub) {
     mqtt_request_cb_t cb = sub ? sub_request_cb : unsub_request_cb;
     mqtt_sub_unsub(state->mqtt_client_inst, full_topic(state, "/led"), MQTT_SUBSCRIBE_QOS, cb, state, sub);
-    mqtt_sub_unsub(state->mqtt_client_inst, full_topic(state, "/led_red"), MQTT_SUBSCRIBE_QOS, cb, state, sub);
+    mqtt_sub_unsub(state->mqtt_client_inst, full_topic(state, "/matriz"), MQTT_SUBSCRIBE_QOS, cb, state, sub);
     mqtt_sub_unsub(state->mqtt_client_inst, full_topic(state, "/print"), MQTT_SUBSCRIBE_QOS, cb, state, sub);
     mqtt_sub_unsub(state->mqtt_client_inst, full_topic(state, "/ping"), MQTT_SUBSCRIBE_QOS, cb, state, sub);
     mqtt_sub_unsub(state->mqtt_client_inst, full_topic(state, "/exit"), MQTT_SUBSCRIBE_QOS, cb, state, sub);

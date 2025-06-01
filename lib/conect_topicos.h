@@ -1,8 +1,8 @@
 #ifndef CONECT_TOPICOS_H
 #define CONECT_TOPICOS_H
 
-#include "lib/config.h"
 #include "lib/mqtt_client.h"
+#include "lib/matrixws.h"
 
 void mqtt_incoming_data_cb(void *arg, const u8_t *data, u16_t len, u8_t flags) {
     MQTT_CLIENT_DATA_T* state = (MQTT_CLIENT_DATA_T*)arg;
@@ -21,6 +21,7 @@ void mqtt_incoming_data_cb(void *arg, const u8_t *data, u16_t len, u8_t flags) {
     enum topic_cmd {
         TOPIC_LED,
         TOPIC_PRINT,
+        TOPIC_MATRIZ,
         TOPIC_PING,
         TOPIC_EXIT,
         TOPIC_UNKNOWN
@@ -28,6 +29,7 @@ void mqtt_incoming_data_cb(void *arg, const u8_t *data, u16_t len, u8_t flags) {
 
     if (strcmp(basic_topic, "/led") == 0) topic = TOPIC_LED;
     else if (strcmp(basic_topic, "/print") == 0) topic = TOPIC_PRINT;
+    else if (strcmp(basic_topic, "/matriz") == 0) topic = TOPIC_MATRIZ;
     else if (strcmp(basic_topic, "/ping") == 0) topic = TOPIC_PING;
     else if (strcmp(basic_topic, "/exit") == 0) topic = TOPIC_EXIT;
 
@@ -97,6 +99,28 @@ void mqtt_incoming_data_cb(void *arg, const u8_t *data, u16_t len, u8_t flags) {
         case TOPIC_PRINT: // Escreve uma mensagem no monitor serial
             INFO_printf("%.*s\n", len, data);
             break;
+        case TOPIC_MATRIZ: {
+            // Desliga todos os LEDs da matriz se o comando for "desliga"
+            if (strcmp((const char *)state->data, "desliga") == 0) {
+            INFO_printf("[MATRIZ] Desligando todos os LEDs da matriz\n");
+            for (int i = 0; i < 25; i++) {
+                cores_matriz((uint)i, 0, 0, 0);
+            }
+            bf(); // Atualiza a matriz
+            } else {
+            // Liga um LED individual da matriz 5x5 usando a função cores_matriz
+            int led_num = 0;
+            if (sscanf((const char *)state->data, "led%d", &led_num) == 1 && led_num >= 1 && led_num <= 25) {
+                INFO_printf("[MATRIZ] Ligando LED %d da matriz\n", led_num);
+                // Exemplo: cor vermelha (R=BRILHO, G=0, B=0)
+                cores_matriz((uint)(led_num-1), BRILHO, 0, 0);
+                bf(); // Atualiza a matriz
+            } else {
+                INFO_printf("[MATRIZ] Comando inválido para matriz: %s\n", state->data);
+            }
+            }
+            break;
+        }
         case TOPIC_PING: {
             char buf[11];
             snprintf(buf, sizeof(buf), "%u", to_ms_since_boot(get_absolute_time()) / 1000);

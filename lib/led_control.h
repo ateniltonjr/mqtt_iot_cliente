@@ -16,7 +16,6 @@ void control_led(MQTT_CLIENT_DATA_T *state, bool on) {
         cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, 0);
 
     mqtt_publish(state->mqtt_client_inst, full_topic(state, "/led/state"), message, strlen(message), MQTT_PUBLISH_QOS, MQTT_PUBLISH_RETAIN, pub_request_cb, state);
-    //
 }
 
 #define red 13

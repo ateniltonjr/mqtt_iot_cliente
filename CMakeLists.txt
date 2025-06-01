@@ -35,7 +35,9 @@ pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(mqtt_iot_cliente mqtt_iot_cliente.c )
+add_executable(mqtt_iot_cliente 
+               mqtt_iot_cliente.c
+               lib/matrixws.c )
 
 # Inclui a pasta include
 include_directories(${CMAKE_CURRENT_LIST_DIR}/include)
@@ -57,6 +59,7 @@ pico_enable_stdio_usb(mqtt_iot_cliente 1)
 target_link_libraries(mqtt_iot_cliente
         pico_stdlib
         hardware_adc
+        hardware_pio
         pico_cyw43_arch_lwip_threadsafe_background
         pico_lwip_mqtt
         pico_mbedtls

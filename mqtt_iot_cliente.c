@@ -11,7 +11,6 @@
 #include "lwip/dns.h"               // Biblioteca que fornece funções e recursos suporte DNS:
 #include "lwip/altcp_tls.h"         // Biblioteca que fornece funções e recursos para conexões seguras usando TLS:
 
-#include "lib/config.h"
 #include "lib/mqtt_client.h"
 #include "lib/temperature.h"
 #include "lib/led_control.h"
@@ -37,8 +36,8 @@ int main(void) {
     iniciar_botoes();
     gpio_set_irq_enabled_with_callback(botaoB, GPIO_IRQ_EDGE_FALL, true, &botaoB_callback);
     iniciar_leds();
-    // Removido teste direto dos LEDs para não travar o programa
-    // Inicializa o conversor ADC
+    controle(PINO_MATRIZ); // Inicializa a matriz de LEDs
+    // Removido teste direto dos LEDs para não travar o programa    // Inicializa o conversor ADC
     adc_init();
     adc_set_temp_sensor_enabled(true);
     adc_select_input(4);
