@@ -17,63 +17,99 @@ void mqtt_incoming_data_cb(void *arg, const u8_t *data, u16_t len, u8_t flags) {
 
     INFO_printf("[DEBUG] Recebido comando no tópico %s: %s\n", basic_topic, state->data);
     DEBUG_printf("Topic: %s, Message: %s\n", state->topic, state->data);
-    if (strcmp(basic_topic, "/led") == 0) {
-        INFO_printf("[DEBUG] Comando recebido: %s\n", state->data);
-        // Utiliza switch para comandos de LED
-        enum led_cmd {
-            LED_CMD_NONE,
-            LED_CMD_RED_ON,
-            LED_CMD_RED_OFF,
-            LED_CMD_BLUE_ON,
-            LED_CMD_BLUE_OFF,
-            LED_CMD_GREEN_ON,
-            LED_CMD_GREEN_OFF
-        } cmd = LED_CMD_NONE;
+    // Organize topic handling using a switch for better structure
+    enum topic_cmd {
+        TOPIC_LED,
+        TOPIC_PRINT,
+        TOPIC_PING,
+        TOPIC_EXIT,
+        TOPIC_UNKNOWN
+    } topic = TOPIC_UNKNOWN;
 
-        if (strcmp((const char *)state->data, "led_red_on") == 0) cmd = LED_CMD_RED_ON;
-        else if (strcmp((const char *)state->data, "led_red_off") == 0) cmd = LED_CMD_RED_OFF;
-        else if (strcmp((const char *)state->data, "led_blue_on") == 0) cmd = LED_CMD_BLUE_ON;
-        else if (strcmp((const char *)state->data, "led_blue_off") == 0) cmd = LED_CMD_BLUE_OFF;
-        else if (strcmp((const char *)state->data, "led_green_on") == 0) cmd = LED_CMD_GREEN_ON;
-        else if (strcmp((const char *)state->data, "led_green_off") == 0) cmd = LED_CMD_GREEN_OFF;
-        
-        switch (cmd) {
-            case LED_CMD_RED_ON:
-                control_red_led(true);
-                break;
-            case LED_CMD_RED_OFF:
-                control_red_led(false);
-                break;
-            case LED_CMD_BLUE_ON:
-                control_blue_led(true);
-                break;
-            case LED_CMD_BLUE_OFF:
-                control_blue_led(false);
-                break;
-            case LED_CMD_GREEN_ON:
-                control_green_led(true);
-                break;
-            case LED_CMD_GREEN_OFF:
-                control_green_led(false);
-                break;
-            default:
-                INFO_printf("[DEBUG] Comando de LED desconhecido: %s\n", state->data);
-                break;
+    if (strcmp(basic_topic, "/led") == 0) topic = TOPIC_LED;
+    else if (strcmp(basic_topic, "/print") == 0) topic = TOPIC_PRINT;
+    else if (strcmp(basic_topic, "/ping") == 0) topic = TOPIC_PING;
+    else if (strcmp(basic_topic, "/exit") == 0) topic = TOPIC_EXIT;
+
+    switch (topic) {
+        case TOPIC_LED: {
+            INFO_printf("[DEBUG] Comando recebido: %s\n", state->data);
+            // Subcomandos de LED
+            enum led_cmd {
+                LED_CMD_NONE,
+                LED_CMD_RED_ON,
+                LED_CMD_RED_OFF,
+                LED_CMD_BLUE_ON,
+                LED_CMD_BLUE_OFF,
+                LED_CMD_GREEN_ON,
+                LED_CMD_GREEN_OFF,
+                LED_CMD_SIMPLE_ON,
+                LED_CMD_SIMPLE_OFF,
+                LED_CMD_OFF
+            } cmd = LED_CMD_NONE;
+
+                if (strcmp((const char *)state->data, "led_red_on") == 0) cmd = LED_CMD_RED_ON;
+                else if (strcmp((const char *)state->data, "led_red_off") == 0) cmd = LED_CMD_RED_OFF;
+                else if (strcmp((const char *)state->data, "led_blue_on") == 0) cmd = LED_CMD_BLUE_ON;
+                else if (strcmp((const char *)state->data, "led_blue_off") == 0) cmd = LED_CMD_BLUE_OFF;
+                else if (strcmp((const char *)state->data, "led_green_on") == 0) cmd = LED_CMD_GREEN_ON;
+                else if (strcmp((const char *)state->data, "led_green_off") == 0) cmd = LED_CMD_GREEN_OFF;
+                else if (lwip_stricmp((const char *)state->data, "On") == 0 || strcmp((const char *)state->data, "1") == 0) cmd = LED_CMD_SIMPLE_ON;
+                else if (lwip_stricmp((const char *)state->data, "Off") == 0 || strcmp((const char *)state->data, "0") == 0) cmd = LED_CMD_SIMPLE_OFF;
+                else if (strcmp((const char *)state->data, "leds_off") == 0) cmd = LED_CMD_OFF;
+
+            switch (cmd) {
+                case LED_CMD_RED_ON:
+                    control_red_led(true);
+                    break;
+                case LED_CMD_RED_OFF:
+                    control_red_led(false);
+                    break;
+                case LED_CMD_BLUE_ON:
+                    control_blue_led(true);
+                    break;
+                case LED_CMD_BLUE_OFF:
+                    control_blue_led(false);
+                    break;
+                case LED_CMD_GREEN_ON:
+                    control_green_led(true);
+                    break;
+                case LED_CMD_GREEN_OFF:
+                    control_green_led(false);
+                    break;
+                case LED_CMD_SIMPLE_ON:
+                    control_led(state, true);
+                    break;
+                case LED_CMD_SIMPLE_OFF:
+                    control_led(state, false);
+                    break;
+                case LED_CMD_OFF:
+                    control_red_led(false);
+                    control_blue_led(false);
+                    control_green_led(false);
+                    break;
+                default:
+                    INFO_printf("[DEBUG] Comando de LED desconhecido: %s\n", state->data);
+                    break;
+            }
+            break;
         }
-    } else if (strcmp(basic_topic, "/led") == 0) {
-        if (lwip_stricmp((const char *)state->data, "On") == 0 || strcmp((const char *)state->data, "1") == 0)
-            control_led(state, true);
-        else if (lwip_stricmp((const char *)state->data, "Off") == 0 || strcmp((const char *)state->data, "0") == 0)
-            control_led(state, false);
-    } else if (strcmp(basic_topic, "/print") == 0) {
-        INFO_printf("%.*s\n", len, data);
-    } else if (strcmp(basic_topic, "/ping") == 0) {
-        char buf[11];
-        snprintf(buf, sizeof(buf), "%u", to_ms_since_boot(get_absolute_time()) / 1000);
-        mqtt_publish(state->mqtt_client_inst, full_topic(state, "/uptime"), buf, strlen(buf), MQTT_PUBLISH_QOS, MQTT_PUBLISH_RETAIN, pub_request_cb, state);
-    } else if (strcmp(basic_topic, "/exit") == 0) {
-        state->stop_client = true; // stop the client when ALL subscriptions are stopped
-        sub_unsub_topics(state, false); // unsubscribe
+        case TOPIC_PRINT: // Escreve uma mensagem no monitor serial
+            INFO_printf("%.*s\n", len, data);
+            break;
+        case TOPIC_PING: {
+            char buf[11];
+            snprintf(buf, sizeof(buf), "%u", to_ms_since_boot(get_absolute_time()) / 1000);
+            mqtt_publish(state->mqtt_client_inst, full_topic(state, "/uptime"), buf, strlen(buf), MQTT_PUBLISH_QOS, MQTT_PUBLISH_RETAIN, pub_request_cb, state);
+            break;
+        }
+        case TOPIC_EXIT:
+            state->stop_client = true; // stop the client when ALL subscriptions are stopped
+            sub_unsub_topics(state, false); // unsubscribe
+            break;
+        default:
+            // Unknown topic, do nothing or log
+            break;
     }
 }
 

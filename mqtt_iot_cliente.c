@@ -24,22 +24,7 @@
 
 #include "lib/conect_topicos.h" // Biblioteca que contém as funções de conexão aos tópicos MQTT
 
-// Modo bootsel
-#define botaoB 6
-void iniciar_botoes()
-{
-    gpio_init(botaoB);
-    gpio_set_dir(botaoB, GPIO_IN);
-    gpio_pull_up(botaoB); // Configura o pino do botão B com pull-up interno
-}
-
-#include "pico/bootrom.h" // Biblioteca que fornece funções para o modo BOOTSEL
-void botaoB_callback(uint gpio, uint32_t events) {
-    if (gpio == botaoB) {
-        INFO_printf("Botão B pressionado, entrando no modo BOOTSEL...\n");
-        reset_usb_boot(0, 0);
-    }
-}
+#include "lib/buttons.h" // Biblioteca que contém as funções de controle dos botões
 
 int main(void) {
     sleep_ms(1000); // Aguarda 1 segundo para estabilizar a energia
