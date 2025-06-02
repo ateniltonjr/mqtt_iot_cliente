@@ -30,6 +30,7 @@ void mqtt_incoming_data_cb(void *arg, const u8_t *data, u16_t len, u8_t flags) {
         TOPIC_UNKNOWN
     } topic = TOPIC_UNKNOWN;
 
+    // Corrige: aceita comandos em todos os tópicos válidos
     if (strcmp(basic_topic, "/led") == 0) topic = TOPIC_LED;
     else if (strcmp(basic_topic, "/print") == 0) topic = TOPIC_PRINT;
     else if (strcmp(basic_topic, "/matriz") == 0) topic = TOPIC_MATRIZ;
@@ -37,6 +38,10 @@ void mqtt_incoming_data_cb(void *arg, const u8_t *data, u16_t len, u8_t flags) {
     else if (strcmp(basic_topic, "/exit") == 0) topic = TOPIC_EXIT;
     else if (strcmp(basic_topic, "/sensores") == 0) topic = TOPIC_SENSORES;
     else if (strcmp(basic_topic, "/servo") == 0) topic = TOPIC_SERVO;
+    else {
+        INFO_printf("[DEBUG] Tópico desconhecido: %s\n", basic_topic);
+        return; // Não processa tópicos desconhecidos
+    }
 
     switch (topic) {
         case TOPIC_LED: {
@@ -105,24 +110,25 @@ void mqtt_incoming_data_cb(void *arg, const u8_t *data, u16_t len, u8_t flags) {
             INFO_printf("%.*s\n", len, data);
             break;
         case TOPIC_MATRIZ: {
-            // Desliga todos os LEDs da matriz se o comando for "desliga"
-            if (strcmp((const char *)state->data, "desliga") == 0) {
-            INFO_printf("[MATRIZ] Desligando todos os LEDs da matriz\n");
-            for (int i = 0; i < 25; i++) {
-                cores_matriz((uint)i, 0, 0, 0);
+            // Remove espaços e quebras de linha do comando recebido
+            char matriz_cmd[64];
+            strncpy(matriz_cmd, (const char *)state->data, sizeof(matriz_cmd) - 1);
+            matriz_cmd[sizeof(matriz_cmd) - 1] = '\0';
+            for (int i = strlen(matriz_cmd) - 1; i >= 0 && (matriz_cmd[i] == '\n' || matriz_cmd[i] == '\r' || matriz_cmd[i] == ' '); i--) {
+                matriz_cmd[i] = '\0';
             }
-            bf(); // Atualiza a matriz
+            if (strcmp(matriz_cmd, "desliga") == 0) {
+                INFO_printf("[MATRIZ] Desligando todos os LEDs da matriz\n");
+                desliga(); // Desliga todos os LEDs da matriz
             } else {
-            // Liga um LED individual da matriz 5x5 usando a função cores_matriz
-            int led_num = 0;
-            if (sscanf((const char *)state->data, "led%d", &led_num) == 1 && led_num >= 1 && led_num <= 25) {
-                INFO_printf("[MATRIZ] Ligando LED %d da matriz\n", led_num);
-                // Exemplo: cor vermelha (R=BRILHO, G=0, B=0)
-                cores_matriz((uint)(led_num-1), BRILHO, 0, 0);
-                bf(); // Atualiza a matriz
-            } else {
-                INFO_printf("[MATRIZ] Comando inválido para matriz: %s\n", state->data);
-            }
+                int led_num = 0;
+                if (sscanf(matriz_cmd, "led%d", &led_num) == 1 && led_num >= 1 && led_num <= 25) {
+                    INFO_printf("[MATRIZ] Ligando LED %d da matriz\n", led_num);
+                    cores_matriz((uint)(led_num-1), BRILHO, 0, 0);
+                    bf();
+                } else {
+                    INFO_printf("[MATRIZ] Comando inválido para matriz: %s\n", matriz_cmd);
+                }
             }
             break;
         }
@@ -137,16 +143,24 @@ void mqtt_incoming_data_cb(void *arg, const u8_t *data, u16_t len, u8_t flags) {
             sub_unsub_topics(state, false); // unsubscribe
             break;
         case TOPIC_SENSORES: {
-            // Ativa/desativa a leitura da temperatura conforme o comando recebido
-            if (lwip_stricmp((const char *)state->data, "temperatura") == 0) {
+            // Remove possíveis quebras de linha e espaços extras do comando recebido
+            char cmd[64];
+            strncpy(cmd, (const char *)state->data, sizeof(cmd) - 1);
+            cmd[sizeof(cmd) - 1] = '\0';
+            // Remove espaços à direita e '\n'
+            for (int i = strlen(cmd) - 1; i >= 0 && (cmd[i] == '\n' || cmd[i] == '\r' || cmd[i] == ' '); i--) {
+            cmd[i] = '\0';
+            }
+
+            if (lwip_stricmp(cmd, "temperatura") == 0) {
             INFO_printf("[SENSORES] Ativando leitura de temperatura\n");
             temperature_worker.user_data = state;
             async_context_add_at_time_worker_in_ms(cyw43_arch_async_context(), &temperature_worker, 0);
-            } else if (lwip_stricmp((const char *)state->data, "temperatura off") == 0) {
+            } else if (lwip_stricmp(cmd, "temperatura off") == 0) {
             INFO_printf("[SENSORES] Desativando leitura de temperatura\n");
             remover_worker_temperatura();
             } else {
-            INFO_printf("[SENSORES] Comando desconhecido: %s\n", state->data);
+            INFO_printf("[SENSORES] Comando desconhecido: %s\n", cmd);
             }
             break;
         }
@@ -162,7 +176,7 @@ void mqtt_incoming_data_cb(void *arg, const u8_t *data, u16_t len, u8_t flags) {
             int angulo = 0;
             if (sscanf((const char *)state->data, "%d", &angulo) == 1 && angulo >= 0 && angulo <= 180) {
                 liga_pwm_servo(); // Garante que o PWM está ligado antes de mover o servo
-                INFO_printf("[SERVO] Posicionando servo em %d graus\n", angulo);
+                INFO_printf("[SERVO] Posicionando servo em %d° graus\n", angulo);
                 uint16_t pulso = calcula_pulso((uint16_t)angulo);
                 posicao(pulso);
             } else {
