@@ -24,6 +24,7 @@ void mqtt_incoming_data_cb(void *arg, const u8_t *data, u16_t len, u8_t flags) {
         TOPIC_MATRIZ,
         TOPIC_PING,
         TOPIC_EXIT,
+        TOPIC_SENSORES,
         TOPIC_UNKNOWN
     } topic = TOPIC_UNKNOWN;
 
@@ -32,6 +33,7 @@ void mqtt_incoming_data_cb(void *arg, const u8_t *data, u16_t len, u8_t flags) {
     else if (strcmp(basic_topic, "/matriz") == 0) topic = TOPIC_MATRIZ;
     else if (strcmp(basic_topic, "/ping") == 0) topic = TOPIC_PING;
     else if (strcmp(basic_topic, "/exit") == 0) topic = TOPIC_EXIT;
+    else if (strcmp(basic_topic, "/sensores") == 0) topic = TOPIC_SENSORES;
 
     switch (topic) {
         case TOPIC_LED: {
@@ -131,6 +133,17 @@ void mqtt_incoming_data_cb(void *arg, const u8_t *data, u16_t len, u8_t flags) {
             state->stop_client = true; // stop the client when ALL subscriptions are stopped
             sub_unsub_topics(state, false); // unsubscribe
             break;
+        case TOPIC_SENSORES: {
+            // Ativa a leitura da temperatura apenas quando receber o comando 'temperatura'
+            if (lwip_stricmp((const char *)state->data, "temperatura") == 0) {
+                INFO_printf("[SENSORES] Ativando leitura de temperatura\n");
+                temperature_worker.user_data = state;
+                async_context_add_at_time_worker_in_ms(cyw43_arch_async_context(), &temperature_worker, 0);
+            } else {
+                INFO_printf("[SENSORES] Comando desconhecido: %s\n", state->data);
+            }
+            break;
+        }
         default:
             // Unknown topic, do nothing or log
             break;
@@ -147,10 +160,7 @@ void mqtt_connection_cb(mqtt_client_t *client, void *arg, mqtt_connection_status
         if (state->mqtt_client_info.will_topic) {
             mqtt_publish(state->mqtt_client_inst, state->mqtt_client_info.will_topic, "1", 1, MQTT_WILL_QOS, true, pub_request_cb, state);
         }
-
-        // Publish temperature every 10 sec if it's changed
-        temperature_worker.user_data = state;
-        async_context_add_at_time_worker_in_ms(cyw43_arch_async_context(), &temperature_worker, 0);
+        // Removido: ativação automática da leitura de temperatura
     } else if (status == MQTT_CONNECT_DISCONNECTED) {
         if (!state->connect_done) {
             panic("Failed to connect to mqtt server");

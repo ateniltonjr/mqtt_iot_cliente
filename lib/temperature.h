@@ -8,8 +8,8 @@
 
 #include "pico/async_context.h"
 
-// Temporização da coleta de temperatura - how often to measure our temperature
-#define TEMP_WORKER_TIME_S 10
+// Temporização da coleta de temperatura 
+#define TEMP_WORKER_TIME_S 2 // 2 segundos
 
 void temperature_worker_fn(async_context_t *context, async_at_time_worker_t *worker) {
     MQTT_CLIENT_DATA_T* state = (MQTT_CLIENT_DATA_T*)worker->user_data;

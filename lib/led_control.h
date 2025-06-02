@@ -41,8 +41,6 @@ void control_red_led(bool on) {
     } else {
         gpio_put(red, false);
         INFO_printf("[LED] vermelho DESLIGADO\n");
-        extern async_at_time_worker_t temperature_worker;
-        async_context_add_at_time_worker_in_ms(cyw43_arch_async_context(), &temperature_worker, 0);
     }
 }
 
@@ -53,8 +51,6 @@ void control_blue_led(bool on) {
     } else {
         gpio_put(blue, false);
         INFO_printf("[LED] Azul DESLIGADO\n");
-        extern async_at_time_worker_t temperature_worker;
-        async_context_add_at_time_worker_in_ms(cyw43_arch_async_context(), &temperature_worker, 0);
     }
 }
 
@@ -65,9 +61,7 @@ void control_green_led(bool on) {
     } else {
         gpio_put(green, false);
         INFO_printf("[LED] Verde DESLIGADO\n");
-        extern async_at_time_worker_t temperature_worker;
-        async_context_add_at_time_worker_in_ms(cyw43_arch_async_context(), &temperature_worker, 0);
     }
 }
 
-#endif // LED_CONTROL_H
+#endif 
