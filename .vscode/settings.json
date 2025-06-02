@@ -40,6 +40,7 @@
         "mqtt_client.h": "c",
         "adc.h": "c",
         "config.h": "c",
-        "altcp_tls.h": "c"
+        "altcp_tls.h": "c",
+        "led_control.h": "c"
     }
 }

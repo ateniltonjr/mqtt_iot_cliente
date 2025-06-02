@@ -3,6 +3,7 @@
 
 #include "lib/mqtt_client.h"
 #include "lib/matrixws.h"
+#include "lib/servo.h"
 
 void mqtt_incoming_data_cb(void *arg, const u8_t *data, u16_t len, u8_t flags) {
     MQTT_CLIENT_DATA_T* state = (MQTT_CLIENT_DATA_T*)arg;
@@ -25,6 +26,7 @@ void mqtt_incoming_data_cb(void *arg, const u8_t *data, u16_t len, u8_t flags) {
         TOPIC_PING,
         TOPIC_EXIT,
         TOPIC_SENSORES,
+        TOPIC_SERVO,
         TOPIC_UNKNOWN
     } topic = TOPIC_UNKNOWN;
 
@@ -34,6 +36,7 @@ void mqtt_incoming_data_cb(void *arg, const u8_t *data, u16_t len, u8_t flags) {
     else if (strcmp(basic_topic, "/ping") == 0) topic = TOPIC_PING;
     else if (strcmp(basic_topic, "/exit") == 0) topic = TOPIC_EXIT;
     else if (strcmp(basic_topic, "/sensores") == 0) topic = TOPIC_SENSORES;
+    else if (strcmp(basic_topic, "/servo") == 0) topic = TOPIC_SERVO;
 
     switch (topic) {
         case TOPIC_LED: {
@@ -141,6 +144,27 @@ void mqtt_incoming_data_cb(void *arg, const u8_t *data, u16_t len, u8_t flags) {
                 async_context_add_at_time_worker_in_ms(cyw43_arch_async_context(), &temperature_worker, 0);
             } else {
                 INFO_printf("[SENSORES] Comando desconhecido: %s\n", state->data);
+            }
+            break;
+        }
+        case TOPIC_SERVO: {
+            // Se receber "desligar servo motor", volta para 0 e desliga PWM
+            if (lwip_stricmp((const char *)state->data, "desligar servo motor") == 0) {
+            INFO_printf("[SERVO] Desligando servo motor (posição 0 e PWM off)\n");
+            uint16_t pulso = calcula_pulso(0);
+            posicao(pulso);
+            desliga_pwm_servo(); // Função para desligar o PWM do servo
+            } else {
+            // Espera receber o ângulo desejado como string (ex: "90")
+            int angulo = 0;
+            if (sscanf((const char *)state->data, "%d", &angulo) == 1 && angulo >= 0 && angulo <= 180) {
+                liga_pwm_servo(); // Garante que o PWM está ligado antes de mover o servo
+                INFO_printf("[SERVO] Posicionando servo em %d graus\n", angulo);
+                uint16_t pulso = calcula_pulso((uint16_t)angulo);
+                posicao(pulso);
+            } else {
+                INFO_printf("[SERVO] Comando inválido para servo: %s\n", state->data);
+            }
             }
             break;
         }

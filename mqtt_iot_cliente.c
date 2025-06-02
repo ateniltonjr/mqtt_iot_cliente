@@ -36,6 +36,7 @@ int main(void) {
     iniciar_botoes();
     gpio_set_irq_enabled_with_callback(botaoB, GPIO_IRQ_EDGE_FALL, true, &botaoB_callback);
     iniciar_leds();
+    servo_config(); // Configura o PWM para o servo motor
     controle(PINO_MATRIZ); // Inicializa a matriz de LEDs
     // Removido teste direto dos LEDs para não travar o programa    // Inicializa o conversor ADC
     adc_init();
