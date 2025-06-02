@@ -51,4 +51,10 @@ void publish_temperature(MQTT_CLIENT_DATA_T *state) {
     }
 }
 
+// Remove função inválida e substitua por função correta para remover o worker de temperatura
+static inline void remover_worker_temperatura() {
+    INFO_printf("[DEBUG] Removendo worker de temperatura\n");
+    async_context_remove_at_time_worker(cyw43_arch_async_context(), &temperature_worker);
+}
+
 #endif // TEMPERATURE_H

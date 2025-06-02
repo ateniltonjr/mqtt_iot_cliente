@@ -137,13 +137,16 @@ void mqtt_incoming_data_cb(void *arg, const u8_t *data, u16_t len, u8_t flags) {
             sub_unsub_topics(state, false); // unsubscribe
             break;
         case TOPIC_SENSORES: {
-            // Ativa a leitura da temperatura apenas quando receber o comando 'temperatura'
+            // Ativa/desativa a leitura da temperatura conforme o comando recebido
             if (lwip_stricmp((const char *)state->data, "temperatura") == 0) {
-                INFO_printf("[SENSORES] Ativando leitura de temperatura\n");
-                temperature_worker.user_data = state;
-                async_context_add_at_time_worker_in_ms(cyw43_arch_async_context(), &temperature_worker, 0);
+            INFO_printf("[SENSORES] Ativando leitura de temperatura\n");
+            temperature_worker.user_data = state;
+            async_context_add_at_time_worker_in_ms(cyw43_arch_async_context(), &temperature_worker, 0);
+            } else if (lwip_stricmp((const char *)state->data, "temperatura off") == 0) {
+            INFO_printf("[SENSORES] Desativando leitura de temperatura\n");
+            remover_worker_temperatura();
             } else {
-                INFO_printf("[SENSORES] Comando desconhecido: %s\n", state->data);
+            INFO_printf("[SENSORES] Comando desconhecido: %s\n", state->data);
             }
             break;
         }

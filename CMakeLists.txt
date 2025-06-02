@@ -37,7 +37,7 @@ pico_sdk_init()
 
 add_executable(mqtt_iot_cliente 
                mqtt_iot_cliente.c
-               lib/matrixws.c )
+                )
 
 # Inclui a pasta include
 include_directories(${CMAKE_CURRENT_LIST_DIR}/include)
