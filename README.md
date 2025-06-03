@@ -61,6 +61,6 @@ Este projeto implementa um sistema IoT de automação residencial utilizando a p
 Desenvolvido por Atenilton Santos de souza Júnior — Polo Bom Jesus da Lapa
 
 ## Demonstração
-- [Link para o vídeo de demonstração](https://youtu.be/seuvideo) *(substitua pelo seu vídeo real)*
+- [Link para o vídeo de demonstração](https://youtu.be/seuvideo) **Falta o vídeo**
 
 ---
