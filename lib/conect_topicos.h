@@ -130,25 +130,46 @@ void mqtt_incoming_data_cb(void *arg, const u8_t *data, u16_t len, u8_t flags) {
             strncpy(matriz_cmd, (const char *)state->data, sizeof(matriz_cmd) - 1);
             matriz_cmd[sizeof(matriz_cmd) - 1] = '\0';
             for (int i = strlen(matriz_cmd) - 1; i >= 0 && (matriz_cmd[i] == '\n' || matriz_cmd[i] == '\r' || matriz_cmd[i] == ' '); i--) {
-                matriz_cmd[i] = '\0';
+            matriz_cmd[i] = '\0';
             }
             if (strcmp(matriz_cmd, "desliga") == 0) {
-                INFO_printf("[MATRIZ] Desligando todos os LEDs da matriz\n");
-                desliga(); // Desliga todos os LEDs da matriz
-                escrever(&ssd, "Matriz desligada", 2, 20, cor);
+            INFO_printf("[MATRIZ] Desligando todos os LEDs da matriz\n");
+            desliga(); // Desliga todos os LEDs da matriz
+            escrever(&ssd, "Matriz desligada", 2, 20, cor);
+            } else if (strncmp(matriz_cmd, "ledr", 4) == 0) {
+            int led_num = 0;
+            if (sscanf(matriz_cmd + 4, "%d", &led_num) == 1 && led_num >= 1 && led_num <= 25) {
+                INFO_printf("[MATRIZ] Ligando LED %d da matriz na cor vermelha\n", led_num);
+                cores_matriz((uint)(led_num-1), BRILHO, 0, 0); // vermelho
+                bf();
+                char msg[32];
+                snprintf(msg, sizeof(msg), "led %d vermelho", led_num);
+                escrever(&ssd, msg, 5, 20, cor);
+            } 
+            } else if (strncmp(matriz_cmd, "ledg", 4) == 0) {
+            int led_num = 0;
+            if (sscanf(matriz_cmd + 4, "%d", &led_num) == 1 && led_num >= 1 && led_num <= 25) {
+                INFO_printf("[MATRIZ] Ligando LED %d da matriz na cor verde\n", led_num);
+                cores_matriz((uint)(led_num-1), 0, BRILHO, 0); // verde
+                bf();
+                char msg[32];
+                snprintf(msg, sizeof(msg), "led %d verde", led_num);
+                escrever(&ssd, msg, 5, 20, cor);
+            } 
+            } else if (strncmp(matriz_cmd, "ledb", 4) == 0) {
+            int led_num = 0;
+            if (sscanf(matriz_cmd + 4, "%d", &led_num) == 1 && led_num >= 1 && led_num <= 25) {
+                INFO_printf("[MATRIZ] Ligando LED %d da matriz na cor azul\n", led_num);
+                cores_matriz((uint)(led_num-1), 0, 0, BRILHO); // azul
+                bf();
+                char msg[32];
+                snprintf(msg, sizeof(msg), "led %d azul", led_num);
+                escrever(&ssd, msg, 5, 20, cor);
+            } 
             } else {
-                int led_num = 0;
-                if (sscanf(matriz_cmd, "led%d", &led_num) == 1 && led_num >= 1 && led_num <= 25) {
-                    INFO_printf("[MATRIZ] Ligando LED %d da matriz\n", led_num);
-                    cores_matriz((uint)(led_num-1), BRILHO, 0, 0);
-                    bf();
-                    char msg[32];
-                    snprintf(msg, sizeof(msg), "led %d ligado", led_num);
-                    escrever(&ssd, msg, 5, 20, cor);
-                } else {
-                    INFO_printf("[MATRIZ] Comando inválido para matriz: %s\n", matriz_cmd);
-                    escrever(&ssd, "Comando invalido", 2, 20, cor);
-                }
+                INFO_printf("[MATRIZ] Comando inválido para matriz: %s\n", matriz_cmd);
+                escrever(&ssd, "Comando", 2, 20, cor);
+                escrever(&ssd, "invalido", 2, 30, cor);
             }
             break;
         }

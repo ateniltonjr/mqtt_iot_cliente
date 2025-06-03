@@ -38,7 +38,7 @@ float read_onboard_temperature(const char unit) {
 
 void publish_temperature(MQTT_CLIENT_DATA_T *state) {
     static float old_temperature;
-    const char *temperature_key = full_topic(state, "/temperature");
+    const char *temperature_key = full_topic(state, "/temperatura");
     float temperature = read_onboard_temperature(TEMPERATURE_UNITS);
     INFO_printf("[DEBUG] publish_temperature chamada. Temperatura: %.2f\n", temperature);
     if (temperature != old_temperature) {
