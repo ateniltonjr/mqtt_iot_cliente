@@ -32,15 +32,16 @@ pico_sdk_init()
 
 add_executable(mqtt_iot_cliente 
                mqtt_iot_cliente.c
+               inc/ssd1306.c
                 )
 
 # Inclui a pasta include
-include_directories(${CMAKE_CURRENT_LIST_DIR}/include)
+include_directories(${CMAKE_CURRENT_LIST_DIR}/inc)
 
 # Adiciona as opções para incluir a pasta include como caminho de include para o compilador
 # (garante que os headers em include/ sejam encontrados)
 target_include_directories(mqtt_iot_cliente PRIVATE
-    ${CMAKE_CURRENT_LIST_DIR}/include
+    ${CMAKE_CURRENT_LIST_DIR}/inc
 )
 
 pico_set_program_name(mqtt_iot_cliente "mqtt_iot_cliente")
@@ -56,6 +57,7 @@ target_link_libraries(mqtt_iot_cliente
         hardware_adc
         hardware_pio
         hardware_pwm
+        hardware_i2c
         pico_cyw43_arch_lwip_threadsafe_background
         pico_lwip_mqtt
         pico_mbedtls

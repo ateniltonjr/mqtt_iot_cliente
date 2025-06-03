@@ -14,6 +14,7 @@
 #include "lib/mqtt_client.h"
 #include "lib/temperature.h"
 #include "lib/led_control.h"
+#include "inc/display.h"
 
 #define WIFI_SSID "AD"
 #define WIFI_PASSWORD "@davidanthony"
@@ -38,7 +39,8 @@ int main(void) {
     iniciar_leds();
     servo_config(); // Configura o PWM para o servo motor
     controle(PINO_MATRIZ); // Inicializa a matriz de LEDs
-    // Removido teste direto dos LEDs para não travar o programa    // Inicializa o conversor ADC
+    init_display(); // Inicializa o display OLED
+    // Inicializa o conversor ADC
     adc_init();
     adc_set_temp_sensor_enabled(true);
     adc_select_input(4);
@@ -104,9 +106,15 @@ int main(void) {
     int wifi_result = cyw43_arch_wifi_connect_timeout_ms(WIFI_SSID, WIFI_PASSWORD, CYW43_AUTH_WPA2_AES_PSK, 30000);
     if (wifi_result) {
         ERROR_printf("Falha ao conectar ao WiFi! Código de erro: %d\n", wifi_result);
+        ssd1306_fill(&ssd, true);
+        escrever(&ssd, "Falha", 2, 10, true);
+        escrever(&ssd, "ao conectar", 2, 20, true);
         panic("Failed to connect");
     } else {
         INFO_printf("Conexão WiFi bem sucedida!\n");
+        ssd1306_fill(&ssd, false);
+        escrever(&ssd, "Conectado", 2, 10, false);
+        escrever(&ssd, "ao Wi-Fi", 2, 20, false);
     }
     INFO_printf("\nConnected to Wifi\n");
 

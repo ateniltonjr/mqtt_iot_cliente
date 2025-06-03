@@ -5,7 +5,7 @@
 #include "hardware/gpio.h"          // Biblioteca de hardware de GPIO
 #include "hardware/irq.h"           // Biblioteca de hardware de interrupções
 #include "hardware/adc.h"           // Biblioteca de hardware para conversão ADC
-
+#include "inc/display.h"
 #include "pico/async_context.h"
 
 // Temporização da coleta de temperatura 
@@ -47,6 +47,11 @@ void publish_temperature(MQTT_CLIENT_DATA_T *state) {
         char temp_str[16];
         snprintf(temp_str, sizeof(temp_str), "%.2f", temperature);
         INFO_printf("Publishing %s to %s\n", temp_str, temperature_key);
+        float temp = read_onboard_temperature(TEMPERATURE_UNITS);
+        snprintf(temp_str, sizeof(temp_str), "Temp: %.2f C", temp);
+        ssd1306_fill(&ssd, !cor); // Limpa o display
+        escrever(&ssd, "/sensores", 5, 10, cor);
+        escrever(&ssd, temp_str, 5, 20, cor);
         mqtt_publish(state->mqtt_client_inst, temperature_key, temp_str, strlen(temp_str), MQTT_PUBLISH_QOS, MQTT_PUBLISH_RETAIN, pub_request_cb, state);
     }
 }

@@ -4,6 +4,7 @@
 #include "lib/mqtt_client.h"
 #include "lib/matrixws.h"
 #include "lib/servo.h"
+#include "inc/display.h"
 
 void mqtt_incoming_data_cb(void *arg, const u8_t *data, u16_t len, u8_t flags) {
     MQTT_CLIENT_DATA_T* state = (MQTT_CLIENT_DATA_T*)arg;
@@ -17,6 +18,8 @@ void mqtt_incoming_data_cb(void *arg, const u8_t *data, u16_t len, u8_t flags) {
     state->data[len] = '\0';
 
     INFO_printf("[DEBUG] Recebido comando no tópico %s: %s\n", basic_topic, state->data);
+    ssd1306_fill(&ssd, false);
+    escrever(&ssd, basic_topic, 5, 10, cor);
     DEBUG_printf("Topic: %s, Message: %s\n", state->topic, state->data);
     // Organize topic handling using a switch for better structure
     enum topic_cmd {
@@ -60,54 +63,66 @@ void mqtt_incoming_data_cb(void *arg, const u8_t *data, u16_t len, u8_t flags) {
                 LED_CMD_OFF
             } cmd = LED_CMD_NONE;
 
-                if (strcmp((const char *)state->data, "led_red_on") == 0) cmd = LED_CMD_RED_ON;
-                else if (strcmp((const char *)state->data, "led_red_off") == 0) cmd = LED_CMD_RED_OFF;
-                else if (strcmp((const char *)state->data, "led_blue_on") == 0) cmd = LED_CMD_BLUE_ON;
-                else if (strcmp((const char *)state->data, "led_blue_off") == 0) cmd = LED_CMD_BLUE_OFF;
-                else if (strcmp((const char *)state->data, "led_green_on") == 0) cmd = LED_CMD_GREEN_ON;
-                else if (strcmp((const char *)state->data, "led_green_off") == 0) cmd = LED_CMD_GREEN_OFF;
+                if (strcmp((const char *)state->data, "led red on") == 0) cmd = LED_CMD_RED_ON;
+                else if (strcmp((const char *)state->data, "led red off") == 0) cmd = LED_CMD_RED_OFF;
+                else if (strcmp((const char *)state->data, "led blue on") == 0) cmd = LED_CMD_BLUE_ON;
+                else if (strcmp((const char *)state->data, "led blue off") == 0) cmd = LED_CMD_BLUE_OFF;
+                else if (strcmp((const char *)state->data, "led green on") == 0) cmd = LED_CMD_GREEN_ON;
+                else if (strcmp((const char *)state->data, "led green off") == 0) cmd = LED_CMD_GREEN_OFF;
                 else if (lwip_stricmp((const char *)state->data, "On") == 0 || strcmp((const char *)state->data, "1") == 0) cmd = LED_CMD_SIMPLE_ON;
                 else if (lwip_stricmp((const char *)state->data, "Off") == 0 || strcmp((const char *)state->data, "0") == 0) cmd = LED_CMD_SIMPLE_OFF;
-                else if (strcmp((const char *)state->data, "leds_off") == 0) cmd = LED_CMD_OFF;
+                else if (strcmp((const char *)state->data, "leds off") == 0) cmd = LED_CMD_OFF;
 
             switch (cmd) {
                 case LED_CMD_RED_ON:
                     control_red_led(true);
+                    //ssd1306_fill(&ssd, false);
+                    escrever(&ssd, "led red on", 5, 20, cor);
                     break;
                 case LED_CMD_RED_OFF:
                     control_red_led(false);
+                    escrever(&ssd, "led red off", 5, 20, cor);
                     break;
                 case LED_CMD_BLUE_ON:
                     control_blue_led(true);
+                    escrever(&ssd, "led blue on", 5, 20, cor);
                     break;
                 case LED_CMD_BLUE_OFF:
                     control_blue_led(false);
+                    escrever(&ssd, "led blue off", 5, 20, cor);
                     break;
                 case LED_CMD_GREEN_ON:
                     control_green_led(true);
+                    escrever(&ssd, "led green on", 5, 20, cor);
                     break;
                 case LED_CMD_GREEN_OFF:
                     control_green_led(false);
+                    escrever(&ssd, "led green off", 5, 20, cor);
                     break;
                 case LED_CMD_SIMPLE_ON:
                     control_led(state, true);
+                    escrever(&ssd, "led on", 5, 20, cor);
                     break;
                 case LED_CMD_SIMPLE_OFF:
                     control_led(state, false);
+                    escrever(&ssd, "led off", 5, 20, cor);
                     break;
                 case LED_CMD_OFF:
                     control_red_led(false);
                     control_blue_led(false);
                     control_green_led(false);
+                    escrever(&ssd, "leds off", 5, 20, cor);
                     break;
                 default:
                     INFO_printf("[DEBUG] Comando de LED desconhecido: %s\n", state->data);
+                    escrever(&ssd, "desconhecido", 5, 20, cor);
                     break;
             }
             break;
         }
         case TOPIC_PRINT: // Escreve uma mensagem no monitor serial
             INFO_printf("%.*s\n", len, data);
+            escrever(&ssd, (const char *)state->data, 5, 20, cor);
             break;
         case TOPIC_MATRIZ: {
             // Remove espaços e quebras de linha do comando recebido
@@ -120,14 +135,19 @@ void mqtt_incoming_data_cb(void *arg, const u8_t *data, u16_t len, u8_t flags) {
             if (strcmp(matriz_cmd, "desliga") == 0) {
                 INFO_printf("[MATRIZ] Desligando todos os LEDs da matriz\n");
                 desliga(); // Desliga todos os LEDs da matriz
+                escrever(&ssd, "Matriz desligada", 2, 20, cor);
             } else {
                 int led_num = 0;
                 if (sscanf(matriz_cmd, "led%d", &led_num) == 1 && led_num >= 1 && led_num <= 25) {
                     INFO_printf("[MATRIZ] Ligando LED %d da matriz\n", led_num);
                     cores_matriz((uint)(led_num-1), BRILHO, 0, 0);
                     bf();
+                    char msg[32];
+                    snprintf(msg, sizeof(msg), "led %d ligado", led_num);
+                    escrever(&ssd, msg, 5, 20, cor);
                 } else {
                     INFO_printf("[MATRIZ] Comando inválido para matriz: %s\n", matriz_cmd);
+                    escrever(&ssd, "Comando invalido", 2, 20, cor);
                 }
             }
             break;
@@ -156,9 +176,13 @@ void mqtt_incoming_data_cb(void *arg, const u8_t *data, u16_t len, u8_t flags) {
             INFO_printf("[SENSORES] Ativando leitura de temperatura\n");
             temperature_worker.user_data = state;
             async_context_add_at_time_worker_in_ms(cyw43_arch_async_context(), &temperature_worker, 0);
+            
+            } else if (lwip_stricmp(cmd, "temperatura") == 0) {
             } else if (lwip_stricmp(cmd, "temperatura off") == 0) {
             INFO_printf("[SENSORES] Desativando leitura de temperatura\n");
             remover_worker_temperatura();
+            escrever(&ssd, "Temperatura off", 5, 20, cor);
+            } else if (lwip_stricmp(cmd, "adc") == 0) {
             } else {
             INFO_printf("[SENSORES] Comando desconhecido: %s\n", cmd);
             }
@@ -171,6 +195,7 @@ void mqtt_incoming_data_cb(void *arg, const u8_t *data, u16_t len, u8_t flags) {
             uint16_t pulso = calcula_pulso(0);
             posicao(pulso);
             desliga_pwm_servo(); // Função para desligar o PWM do servo
+            escrever(&ssd, "Servo desligado", 5, 20, cor);
             } else {
             // Espera receber o ângulo desejado como string (ex: "90")
             int angulo = 0;
@@ -179,8 +204,12 @@ void mqtt_incoming_data_cb(void *arg, const u8_t *data, u16_t len, u8_t flags) {
                 INFO_printf("[SERVO] Posicionando servo em %d° graus\n", angulo);
                 uint16_t pulso = calcula_pulso((uint16_t)angulo);
                 posicao(pulso);
+                char msg[32];
+                snprintf(msg, sizeof(msg), "Servo em: %d", angulo);
+                escrever(&ssd, msg, 5, 20, cor);
             } else {
                 INFO_printf("[SERVO] Comando inválido para servo: %s\n", state->data);
+                escrever(&ssd, "Comando invalido", 2, 20, cor);
             }
             }
             break;
